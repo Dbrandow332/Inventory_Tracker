@@ -20,3 +20,13 @@ def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
     return db_item
+
+@router.delete("/inventory/{item_id}")
+def del_inventory_item(item_id: int, db: Session = Depends(get_db)):
+    db_item = db.query(InventoryItem).filter(InventoryItem.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    db.delete(db_item)
+    db.commit()
+    return {"message": f"User with ID {item_id} has been deleted successfully"}
