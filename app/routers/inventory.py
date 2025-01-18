@@ -1,32 +1,48 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.inventory import InventoryItem
-from app.schemas import InventoryItem, InventoryItemCreate
+from app.models.inventory import Inventory
+from app.schemas import InventoryItem, InventoryItemCreate, InventoryItemUpdate
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/api/inventory",
+    tags=["inventory"],
+)
 
-@router.post("/inventory/", response_model=InventoryItem)
-def create_inventory_item(item: InventoryItemCreate, db: Session = Depends(get_db)):
-    db_item = InventoryItem(**item.dict())
-    db.add(db_item)
+@router.get("/")
+def get_inventory(db: Session = Depends(get_db)):
+    return db.query(Inventory).all()
+
+@router.post("/", response_model=InventoryItem)
+def add_inventory(item: InventoryItemCreate, db: Session = Depends(get_db)):
+    new_item = Inventory(name=item.name, count=item.count)
+    db.add(new_item)
     db.commit()
-    db.refresh(db_item)
-    return db_item
+    db.refresh(new_item)
+    return new_item
 
-@router.get("/inventory/{item_id}", response_model=InventoryItem)
+@router.get("/{item_id}", response_model=InventoryItem)
 def get_inventory_item(item_id: int, db: Session = Depends(get_db)):
-    db_item = db.query(InventoryItem).filter(InventoryItem.id == item_id).first()
+    db_item = db.query(Inventory).filter(Inventory.id == item_id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Item not found")
     return db_item
 
-@router.delete("/inventory/{item_id}")
-def del_inventory_item(item_id: int, db: Session = Depends(get_db)):
-    db_item = db.query(InventoryItem).filter(InventoryItem.id == item_id).first()
-    if not db_item:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    db.delete(db_item)
+@router.put("/{item_id}", response_model=InventoryItem)
+def update_inventory(item_id: int, item: InventoryItemUpdate, db: Session = Depends(get_db)):
+    inventory_item = db.query(Inventory).filter(Inventory.id == item_id).first()
+    if not inventory_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    for key, value in item.dict().items():
+        setattr(inventory_item, key, value)
     db.commit()
-    return {"message": f"User with ID {item_id} has been deleted successfully"}
+    return inventory_item
+
+@router.delete("/{item_id}")
+def delete_inventory(item_id: int, db: Session = Depends(get_db)):
+    inventory_item = db.query(Inventory).filter(Inventory.id == item_id).first()
+    if not inventory_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db.delete(inventory_item)
+    db.commit()
+    return {"message": "Item deleted successfully"}

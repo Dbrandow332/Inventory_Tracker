@@ -1,17 +1,23 @@
 from pydantic import BaseModel, EmailStr, Field
+from typing import Optional
 
 class InventoryItemBase(BaseModel):
     name: str
-    quantity: int
+    count: int
 
 class InventoryItemCreate(InventoryItemBase):
     pass
 
-class InventoryItem(InventoryItemBase):
+class InventoryItem(BaseModel):
     id: int
+    name: str
+    count: int
 
     class Config:
         orm_mode = True
+
+class InventoryItemUpdate(BaseModel):
+    count: int
 
 # Base schema for shared attributes
 class UserBase(BaseModel):
